@@ -36,7 +36,7 @@ app.post("/repositories", (request, response) => {
 app.put("/repositories/:id", (request, response) => {
   // TODO
   const { id } = request.params;
-  const { url, title, techs } = request.body;
+  const { url, title, techs, likes } = request.body;
 
   const newRepository = {
     id,
@@ -52,9 +52,19 @@ app.put("/repositories/:id", (request, response) => {
     return response.status(400).send();
   }
 
-  repositories[findRepositoryIndex] = newRepository;
+  const existingRepository = repositories[findRepositoryIndex];
 
-  return response.json(newRepository);
+  // Prevent updating likes directly
+  if (likes !== undefined && likes !== existingRepository.likes) {
+    return response.status(400).json({ likes: existingRepository.likes });
+  }
+
+  // Update other fields if they exist in the request
+  if (url) existingRepository.url = url;
+  if (title) existingRepository.title = title;
+  if (techs) existingRepository.techs = techs;
+
+  return response.json(existingRepository);
 });
 
 app.delete("/repositories/:id", (request, response) => {
@@ -77,7 +87,6 @@ app.delete("/repositories/:id", (request, response) => {
 app.post("/repositories/:id/like", (request, response) => {
   // TODO
   const { id } = request.params;
-  const { likes } = request.body;
 
   const findRepositoryIndex = repositories.findIndex(repository => 
     repository.id == id);
@@ -88,12 +97,7 @@ app.post("/repositories/:id/like", (request, response) => {
 
   repositories[findRepositoryIndex].likes++;
 
-  if(likes) {
-    return response.status(400).send();
-  }
-
-  const likesArray = repositories.map(repo => ({ likes: repo.likes }));
-  return response.json({likes: likesArray[findRepositoryIndex].likes});
+  return response.json(repositories[findRepositoryIndex]);
 });
 
 module.exports = app;
